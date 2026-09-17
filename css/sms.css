@@ -1,0 +1,110 @@
+:root {
+    --olistar-crimson: #900C3F;
+    --olistar-crimson-dark: #6b092f;
+    --olistar-gold: #ffc107;
+    --olistar-dark: #1e1e1e;
+    --olistar-sidebar: #1a1216;
+    --olistar-light: #f7f4f5;
+    --font-serif: Georgia, "Times New Roman", serif;
+    --font-sans: "Segoe UI", system-ui, sans-serif;
+}
+
+html, body { height: 100%; }
+body:has(#sms-shell) #sms-shell { visibility: hidden; }
+html.sms-ready body:has(#sms-shell) #sms-shell { visibility: visible; }
+html.sms-loading #sms-shell { visibility: hidden; }
+html.sms-loading::before {
+    content: "Loading School Portal...";
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: grid;
+    place-items: center;
+    background: var(--olistar-light);
+    color: var(--olistar-crimson);
+    font-family: var(--font-serif);
+    font-size: 1.2rem;
+}
+body {
+    font-family: var(--font-sans);
+    color: var(--olistar-dark);
+    background: var(--olistar-light);
+}
+
+h1, h2, h3, h4, .font-serif { font-family: var(--font-serif); }
+
+.sms-login-body {
+    min-height: 100vh;
+    background: linear-gradient(160deg, #1a1216 0%, #900C3F 55%, #1e1e1e 100%);
+}
+
+.sms-login-card {
+    max-width: 460px;
+    border: 2px solid var(--olistar-gold);
+}
+
+.sms-brand { color: var(--olistar-crimson); }
+
+.sms-shell { min-height: 100vh; }
+
+.sms-sidebar {
+    width: 260px;
+    background: var(--olistar-sidebar);
+    min-height: 100vh;
+}
+
+.sms-sidebar a {
+    color: rgba(255,255,255,.78);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .65rem 1rem;
+    border-left: 3px solid transparent;
+    font-size: .9rem;
+}
+
+.sms-sidebar a:hover,
+.sms-sidebar a.active {
+    color: var(--olistar-gold);
+    background: rgba(255,255,255,.06);
+    border-left-color: var(--olistar-gold);
+}
+
+.sms-topbar {
+    background: #fff;
+    border-bottom: 2px solid var(--olistar-dark);
+}
+
+.stat-card {
+    border: 0;
+    border-radius: 0;
+    border-bottom: 3px solid var(--olistar-crimson);
+}
+
+.badge-boarding { background: var(--olistar-crimson); }
+.badge-day { background: #1e1e1e; }
+
+.btn-crimson {
+    background: var(--olistar-crimson);
+    color: #fff;
+    border: 0;
+    border-radius: 0;
+}
+.btn-crimson:hover { background: var(--olistar-crimson-dark); color: #fff; }
+
+.table thead th {
+    background: #212529;
+    color: #f8f9fa;
+    font-size: .75rem;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+}
+
+.nav-pills .nav-link.active {
+    background: var(--olistar-crimson);
+}
+
+@media (max-width: 991.98px) {
+    .sms-sidebar { width: 100%; min-height: auto; }
+}

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fees | Olistar School Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/sms.css">
+</head>
+<body>
+<div id="sms-shell">
+    <!-- Issue Itemized Fee Bill Card -->
+    <div class="card rounded-0 shadow-sm border mb-4" id="feeFormCard">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+            <span class="fw-bold text-uppercase small"><i class="bi bi-receipt me-1"></i> Issue Itemized Fee Bill</span>
+            <span class="badge bg-crimson fs-6" id="totalDueBadge">Total Due: GHS 0.00</span>
+        </div>
+        <div class="card-body p-3">
+            <div id="feeAlert" class="alert d-none rounded-0" role="alert"></div>
+            <form id="feeForm">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label small text-uppercase fw-bold">Select Student <span class="text-danger">*</span></label>
+                        <select id="feeStudent" class="form-select rounded-0" required></select>
+                        <div id="studentBoardingHint" class="small text-muted mt-1"></div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-uppercase fw-bold">Term</label>
+                        <select id="feeTerm" class="form-select rounded-0">
+                            <option value="Term 1" selected>Term 1</option>
+                            <option value="Term 2">Term 2</option>
+                            <option value="Term 3">Term 3</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-uppercase fw-bold">Academic Year</label>
+                        <input id="feeYearBatch" class="form-control rounded-0" value="2026/2027">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-uppercase fw-bold">Due Date</label>
+                        <input type="date" id="feeDueDate" class="form-control rounded-0">
+                    </div>
+                </div>
+
+                <!-- Itemized Fee Components -->
+                <div class="bg-light p-3 border mb-3">
+                    <div class="fw-bold small text-uppercase mb-2 text-dark">
+                        <i class="bi bi-calculator me-1"></i> Itemized Fee Components (Check to include, uncheck to opt out)
+                    </div>
+                    <div class="row g-3">
+                        <!-- 1. Academic Tuition -->
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input fee-checkbox" type="checkbox" id="checkTuition" checked disabled>
+                                <label class="form-check-label small fw-bold" for="checkTuition">
+                                    Term Academic Tuition (Required)
+                                </label>
+                            </div>
+                            <div class="input-group input-group-sm mt-1">
+                                <span class="input-group-text rounded-0">GHS</span>
+                                <input type="number" step="0.01" min="0" class="form-control rounded-0 fee-amount" id="feeTuition" value="1200" required>
+                            </div>
+                        </div>
+
+                        <!-- 2. Books & Stationery -->
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input fee-checkbox" type="checkbox" id="checkBooks" checked>
+                                <label class="form-check-label small fw-bold" for="checkBooks">
+                                    Books &amp; Learning Materials
+                                </label>
+                            </div>
+                            <div class="input-group input-group-sm mt-1">
+                                <span class="input-group-text rounded-0">GHS</span>
+                                <input type="number" step="0.01" min="0" class="form-control rounded-0 fee-amount" id="feeBooks" value="250">
+                            </div>
+                        </div>
+
+                        <!-- 3. Feeding Fee -->
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input fee-checkbox" type="checkbox" id="checkFeeding" checked>
+                                <label class="form-check-label small fw-bold" for="checkFeeding">
+                                    Feeding Fee (Canteen / Meals)
+                                </label>
+                            </div>
+                            <div class="input-group input-group-sm mt-1">
+                                <span class="input-group-text rounded-0">GHS</span>
+                                <input type="number" step="0.01" min="0" class="form-control rounded-0 fee-amount" id="feeFeeding" value="450">
+                            </div>
+                        </div>
+
+                        <!-- 4. Bus / Transport -->
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input fee-checkbox" type="checkbox" id="checkBus">
+                                <label class="form-check-label small fw-bold" for="checkBus">
+                                    School Bus / Transportation
+                                </label>
+                            </div>
+                            <div class="input-group input-group-sm mt-1">
+                                <span class="input-group-text rounded-0">GHS</span>
+                                <input type="number" step="0.01" min="0" class="form-control rounded-0 fee-amount" id="feeBus" value="350">
+                            </div>
+                        </div>
+
+                        <!-- 5. Hostel / Boarding Accommodation -->
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input fee-checkbox" type="checkbox" id="checkHostel">
+                                <label class="form-check-label small fw-bold" for="checkHostel">
+                                    Hostel / Boarding Facility
+                                </label>
+                            </div>
+                            <div class="input-group input-group-sm mt-1">
+                                <span class="input-group-text rounded-0">GHS</span>
+                                <input type="number" step="0.01" min="0" class="form-control rounded-0 fee-amount" id="feeHostel" value="800">
+                            </div>
+                        </div>
+
+                        <!-- 6. Extra / Other Fee -->
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input fee-checkbox" type="checkbox" id="checkExtra">
+                                <label class="form-check-label small fw-bold" for="checkExtra">
+                                    Extra / Other Activities
+                                </label>
+                            </div>
+                            <div class="input-group input-group-sm mt-1">
+                                <input type="text" class="form-control rounded-0" id="feeExtraLabel" placeholder="e.g. PTA / Practical" style="max-width: 50%;">
+                                <span class="input-group-text rounded-0">GHS</span>
+                                <input type="number" step="0.01" min="0" class="form-control rounded-0 fee-amount" id="feeExtra" value="100">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment details and Submission -->
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label small text-uppercase fw-bold">Calculated Total Due</label>
+                        <div class="input-group">
+                            <span class="input-group-text rounded-0">GHS</span>
+                            <input type="number" step="0.01" id="feeDue" class="form-control rounded-0 bg-light fw-bold" readonly>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-uppercase fw-bold">Initial Payment Amount</label>
+                        <div class="input-group">
+                            <span class="input-group-text rounded-0">GHS</span>
+                            <input type="number" step="0.01" min="0" id="feePaid" class="form-control rounded-0" value="0">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-uppercase fw-bold">Payment Method</label>
+                        <select id="feePaymentMethod" class="form-select rounded-0">
+                            <option value="Pending / Invoice">Pending / Invoice (Not Paid)</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Mobile Money">Mobile Money (MTN/Telecel)</option>
+                            <option value="Bank Deposit">Bank Deposit / Cheque</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-crimson rounded-0 w-100 py-2" type="submit" id="saveFeeBtn">
+                            <i class="bi bi-receipt me-1"></i> Save &amp; Issue Bill
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Fee Records Table -->
+    <div class="table-responsive bg-white shadow-sm border p-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="font-serif mb-0">Student Fee Records</h5>
+            <div class="text-muted small" id="feeStats"></div>
+        </div>
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Term / Batch</th>
+                    <th>Total Due</th>
+                    <th>Paid</th>
+                    <th>Balance</th>
+                    <th>Breakdown</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="feeBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- View Fee Breakdown / Invoice Modal -->
+<div class="modal fade" id="feeBreakdownModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content rounded-0">
+            <div class="modal-header">
+                <h5 class="modal-title font-serif"><i class="bi bi-receipt me-1"></i> Fee Bill Breakdown</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="breakdownModalBody">
+                <!-- Injected dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary rounded-0" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-crimson rounded-0" id="printInvoiceBtn">
+                    <i class="bi bi-printer me-1"></i> Print Invoice
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Record Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content rounded-0">
+            <form id="recordPaymentForm">
+                <div class="modal-header">
+                    <h5 class="modal-title font-serif">Record Fee Payment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="paymentAlert" class="alert d-none rounded-0"></div>
+                    <input type="hidden" id="payFeeId">
+                    <p class="mb-2">Student: <strong id="payStudentName"></strong></p>
+                    <p class="mb-3 text-muted small">Term: <span id="payTerm"></span> | Balance Remaining: <strong id="payBalance" class="text-danger"></strong></p>
+                    <div class="mb-3">
+                        <label class="form-label small text-uppercase fw-bold">Payment Amount (GHS) <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" min="1" id="payAmount" class="form-control rounded-0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-uppercase fw-bold">Payment Channel</label>
+                        <select id="payChannel" class="form-select rounded-0">
+                            <option value="Cash">Cash</option>
+                            <option value="Mobile Money">Mobile Money (MTN / Telecel)</option>
+                            <option value="Bank Deposit">Bank Deposit / Cheque</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary rounded-0" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-crimson rounded-0" id="recordPaySubmitBtn">Confirm Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script type="module" src="js/pages/fees.js"></script>
+</body>
+</html>

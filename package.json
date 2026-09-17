@@ -1,0 +1,13 @@
+﻿{
+  "name": "olistar-sms-portal",
+  "version": "1.0.0",
+  "description": "Olistar School Management System Portal",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["olistar", "sms", "portal"],
+  "author": "",
+  "license": "ISC"
+}

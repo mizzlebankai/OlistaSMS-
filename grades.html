@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grades | Olistar School Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/sms.css">
+</head>
+<body>
+<div id="sms-shell">
+    <!-- Record Academic Marks Card -->
+    <div class="card rounded-0 shadow-sm border mb-4" id="gradeFormCard">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+            <span class="fw-bold text-uppercase small"><i class="bi bi-journal-plus me-1"></i> Record Student Academic Marks</span>
+            <span class="badge bg-crimson fs-6" id="gradePreviewBadge">Calculated Grade: --</span>
+        </div>
+        <div class="card-body p-3">
+            <div id="gradeAlert" class="alert d-none rounded-0" role="alert"></div>
+            <form id="gradeForm">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label small text-uppercase fw-bold">Select Student <span class="text-danger">*</span></label>
+                        <select id="gradeStudent" class="form-select rounded-0" required></select>
+                        <div id="studentDivisionHint" class="small text-muted mt-1"></div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-uppercase fw-bold">Subject <span class="text-danger">*</span></label>
+                        <select id="gradeSubject" class="form-select rounded-0" required></select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-uppercase fw-bold">Term</label>
+                        <select id="gradeTerm" class="form-select rounded-0">
+                            <option value="Term 1" selected>Term 1</option>
+                            <option value="Term 2">Term 2</option>
+                            <option value="Term 3">Term 3</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-uppercase fw-bold">Academic Year</label>
+                        <input id="gradeYearBatch" class="form-control rounded-0" value="2026/2027">
+                    </div>
+                </div>
+
+                <!-- Grading Inputs Area (Differentiated by Division) -->
+                <div class="bg-light p-3 border mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold small text-uppercase" id="gradingSchemeTitle">
+                            <i class="bi bi-award me-1"></i> Ghanaian Assessment Scheme
+                        </span>
+                        <span class="small text-muted" id="gradingSchemeNote"></span>
+                    </div>
+
+                    <div class="row g-3 align-items-end">
+                        <!-- CA Score -->
+                        <div class="col-md-3">
+                            <label class="form-label small text-uppercase fw-bold" id="labelCaScore">Class Assessment (CA)</label>
+                            <div class="input-group">
+                                <input type="number" step="0.5" min="0" max="50" class="form-control rounded-0 score-input" id="gradeCa" required placeholder="0">
+                                <span class="input-group-text rounded-0" id="badgeCaMax">/ 50</span>
+                            </div>
+                        </div>
+
+                        <!-- Project Score (SHS/TVET only) -->
+                        <div class="col-md-3" id="projectScoreCol" style="display: none;">
+                            <label class="form-label small text-uppercase fw-bold">Project / Practical</label>
+                            <div class="input-group">
+                                <input type="number" step="0.5" min="0" max="20" class="form-control rounded-0 score-input" id="gradeProject" placeholder="0">
+                                <span class="input-group-text rounded-0">/ 20</span>
+                            </div>
+                        </div>
+
+                        <!-- Exam Score -->
+                        <div class="col-md-3">
+                            <label class="form-label small text-uppercase fw-bold">End of Term Exam</label>
+                            <div class="input-group">
+                                <input type="number" step="0.5" min="0" max="50" class="form-control rounded-0 score-input" id="gradeExam" required placeholder="0">
+                                <span class="input-group-text rounded-0" id="badgeExamMax">/ 50</span>
+                            </div>
+                        </div>
+
+                        <!-- Total & Auto-Calculated Grade -->
+                        <div class="col-md-3">
+                            <label class="form-label small text-uppercase fw-bold">Total Score (/100)</label>
+                            <input type="text" class="form-control rounded-0 bg-white fw-bold" id="gradeTotalDisplay" readonly value="0">
+                        </div>
+                    </div>
+
+                    <div class="mt-2 small text-muted d-flex align-items-center gap-3" id="gradeFeedbackRow">
+                        <span>Grade: <strong id="gradeResultDisplay" class="text-crimson">--</strong></span>
+                        <span>Remark: <strong id="gradeRemarkDisplay">--</strong></span>
+                    </div>
+                </div>
+
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-9">
+                        <label class="form-label small text-uppercase fw-bold">Teacher Remarks / Notes</label>
+                        <input id="gradeRemark" class="form-control rounded-0" placeholder="Optional teacher remark (e.g. Excellent grasp of concepts)">
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-crimson rounded-0 w-100 py-2" type="submit" id="saveGradeBtn">
+                            <i class="bi bi-check-circle me-1"></i> Save Grade
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Grades Table Section -->
+    <div class="table-responsive bg-white shadow-sm border p-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <h5 class="font-serif mb-0">Academic Grade Records</h5>
+            <div class="d-flex gap-2">
+                <select id="gradeClassFilter" class="form-select form-select-sm rounded-0" style="width:auto">
+                    <option value="all">All Classes</option>
+                </select>
+                <select id="gradeSubjectFilter" class="form-select form-select-sm rounded-0" style="width:auto">
+                    <option value="all">All Subjects</option>
+                </select>
+                <select id="gradeTermFilter" class="form-select form-select-sm rounded-0" style="width:auto">
+                    <option value="all">All Terms</option>
+                    <option value="Term 1">Term 1</option>
+                    <option value="Term 2">Term 2</option>
+                    <option value="Term 3">Term 3</option>
+                </select>
+            </div>
+        </div>
+
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Class / Division</th>
+                    <th>Subject</th>
+                    <th>Term</th>
+                    <th>CA</th>
+                    <th>Project</th>
+                    <th>Exam</th>
+                    <th>Total (/100)</th>
+                    <th>Ghanaian Grade</th>
+                    <th>Remark</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="gradeBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="selectedStudentResultsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content rounded-0">
+            <div class="modal-header">
+                <h5 class="modal-title font-serif" id="selectedStudentResultsTitle">Student results</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm align-middle">
+                    <thead><tr><th>Subject</th><th>Term</th><th>Score</th><th>Grade</th><th>Remark</th></tr></thead>
+                    <tbody id="selectedStudentResultsBody"><tr><td colspan="5" class="text-muted text-center">Select a student to view results.</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Grade Modal -->
+<div class="modal fade" id="editGradeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content rounded-0">
+            <form id="editGradeForm">
+                <div class="modal-header">
+                    <h5 class="modal-title font-serif">Edit Student Academic Marks</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="editGradeAlert" class="alert d-none rounded-0"></div>
+                    <input type="hidden" id="editGradeId">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6"><strong>Student:</strong> <span id="editStudentName"></span></div>
+                        <div class="col-md-6"><strong>Subject:</strong> <span id="editSubjectName"></span></div>
+                        <div class="col-md-6"><strong>Class:</strong> <span id="editClassName"></span></div>
+                        <div class="col-md-6"><strong>Term:</strong> <span id="editTermName"></span></div>
+                    </div>
+                    <div class="row g-3 bg-light p-3 border mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label small text-uppercase fw-bold" id="editLabelCa">Continuous Assessment</label>
+                            <input type="number" step="0.5" min="0" id="editCa" class="form-control rounded-0 edit-score-input" required>
+                        </div>
+                        <div class="col-md-4" id="editProjectCol">
+                            <label class="form-label small text-uppercase fw-bold">Project / Practical (/20)</label>
+                            <input type="number" step="0.5" min="0" max="20" id="editProject" class="form-control rounded-0 edit-score-input">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small text-uppercase fw-bold" id="editLabelExam">End of Term Exam</label>
+                            <input type="number" step="0.5" min="0" id="editExam" class="form-control rounded-0 edit-score-input" required>
+                        </div>
+                        <div class="col-12 mt-2">
+                            <div class="p-2 bg-white border d-flex justify-content-between align-items-center">
+                                <span>Computed Total: <strong id="editTotalScore">0</strong> / 100</span>
+                                <span>Grade: <strong id="editGrade" class="text-crimson">--</strong></span>
+                                <span>Remark: <strong id="editRemark">--</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-uppercase fw-bold">Teacher Remark</label>
+                        <input type="text" id="editTeacherRemark" class="form-control rounded-0">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary rounded-0" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-crimson rounded-0" id="saveEditGradeBtn">Update Mark</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script type="module" src="js/pages/grades.js"></script>
+</body>
+</html>

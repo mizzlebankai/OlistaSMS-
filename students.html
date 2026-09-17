@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Students | Olistar School Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/sms.css">
+</head>
+<body>
+<div id="sms-shell">
+    <div class="d-flex flex-wrap gap-2 justify-content-between mb-3">
+        <div class="d-flex flex-wrap gap-2">
+            <select id="boardFilter" class="form-select form-select-sm rounded-0" style="width:auto">
+                <option value="all">All students</option>
+                <option value="boarding">Boarding</option>
+                <option value="day">Day</option>
+            </select>
+            <select id="classFilter" class="form-select form-select-sm rounded-0" style="width:auto">
+                <option value="all">All Classes</option>
+            </select>
+            <input id="studentSearch" class="form-control form-control-sm rounded-0" placeholder="Search name or code">
+        </div>
+        <button class="btn btn-crimson btn-sm" data-bs-toggle="modal" data-bs-target="#walkInModal" id="walkInBtn">Enroll walk-in</button>
+    </div>
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead><tr>
+                <th>Code</th><th>Name</th><th>Class</th><th>Boarding / Day</th><th>Source</th><th>Account</th><th></th>
+            </tr></thead>
+            <tbody id="studentBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="walkInModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content rounded-0">
+            <form id="walkInForm">
+                <div class="modal-header">
+                    <h5 class="modal-title font-serif">Enroll walk-in student</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body row g-3">
+                    <div class="col-md-4"><label class="form-label">First name</label><input name="firstName" class="form-control rounded-0" required></div>
+                    <div class="col-md-4"><label class="form-label">Middle name</label><input name="middleName" class="form-control rounded-0"></div>
+                    <div class="col-md-4"><label class="form-label">Last name</label><input name="lastName" class="form-control rounded-0" required></div>
+                    <div class="col-md-4"><label class="form-label">Date of birth</label><input type="date" name="dob" class="form-control rounded-0"></div>
+                    <div class="col-md-4"><label class="form-label">Gender</label>
+                        <select name="gender" class="form-select rounded-0"><option>Male</option><option>Female</option></select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Educational Division <span class="text-danger">*</span></label>
+                        <select name="academicTier" id="walkInTier" class="form-select rounded-0" required>
+                            <option value="" selected disabled>Select Division...</option>
+                            <option value="Early Grade Division">Early Grade Division (Crèche, Nursery, KG)</option>
+                            <option value="Primary Division">Primary Division (Class 1 – 6)</option>
+                            <option value="Junior High School">Junior High School (JHS 1 – 3)</option>
+                            <option value="Senior High School">Senior High School (SHS)</option>
+                            <option value="Technical / TVET">Technical / TVET Division</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Program / Specialization</label>
+                        <select name="programStream" id="walkInStream" class="form-select rounded-0">
+                            <option value="">Select Stream / Specialization (optional)...</option>
+                            <optgroup label="Early Grade" data-tier="Early Grade Division">
+                                <option value="Crèche &amp; Daycare">Crèche &amp; Daycare</option>
+                                <option value="Nursery 1 &amp; 2">Nursery 1 &amp; 2</option>
+                                <option value="Kindergarten (KG 1 &amp; 2)">Kindergarten (KG 1 &amp; 2)</option>
+                            </optgroup>
+                            <optgroup label="Primary Division" data-tier="Primary Division">
+                                <option value="Lower Primary (Class 1 - 3)">Lower Primary (Class 1 - 3)</option>
+                                <option value="Upper Primary (Class 4 - 6)">Upper Primary (Class 4 - 6)</option>
+                            </optgroup>
+                            <optgroup label="Junior High School" data-tier="Junior High School">
+                                <option value="JHS General / BECE">JHS General / BECE</option>
+                            </optgroup>
+                            <optgroup label="Senior High School" data-tier="Senior High School">
+                                <option value="General Arts">General Arts</option>
+                                <option value="Business Studies">Business Studies</option>
+                                <option value="General Science">General Science</option>
+                                <option value="Home Economics">Home Economics</option>
+                                <option value="Visual Arts">Visual Arts</option>
+                            </optgroup>
+                            <optgroup label="Technical / TVET" data-tier="Technical / TVET">
+                                <option value="ICT &amp; Software Fundamentals">ICT &amp; Software Fundamentals</option>
+                                <option value="Building Construction Technology">Building Construction Technology</option>
+                                <option value="Catering &amp; Hospitality">Catering &amp; Hospitality</option>
+                                <option value="Electrical Engineering Technology">Electrical Engineering Technology</option>
+                                <option value="Automotive &amp; Mechanical">Automotive &amp; Mechanical</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="col-md-4"><label class="form-label">Class</label><select name="classId" id="walkInClass" class="form-select rounded-0"></select></div>
+                    <div class="col-md-4"><label class="form-label">Academic Batch</label><input name="yearBatch" class="form-control rounded-0" value="2026/2027" placeholder="e.g. 2026/2027"></div>
+                    <div class="col-md-6">
+                        <label class="form-label">Boarding or day</label>
+                        <div>
+                            <label class="me-3"><input type="radio" name="boardingStatus" value="boarding" required> Boarding</label>
+                            <label><input type="radio" name="boardingStatus" value="day" required> Day</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6"><label class="form-label">Guardian name</label><input name="guardianName" class="form-control rounded-0" required></div>
+                    <div class="col-md-6"><label class="form-label">Guardian phone</label><input name="guardianPhone" class="form-control rounded-0" required></div>
+                    <div class="col-md-6"><label class="form-label">Contact email (receives verification)</label><input type="email" name="contactEmail" class="form-control rounded-0" required></div>
+                    <div class="col-12"><label class="form-label">Address</label><input name="address" class="form-control rounded-0"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-crimson" type="submit">Create student &amp; login</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Class Modal -->
+<div class="modal fade" id="assignClassModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content rounded-0">
+            <form id="assignClassForm">
+                <div class="modal-header">
+                    <h5 class="modal-title font-serif">Assign / Change Class</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="assignAlert" class="alert d-none rounded-0" role="alert"></div>
+                    <input type="hidden" id="assignStudentId" name="studentId">
+                    <p class="mb-3">Student: <strong id="assignStudentName"></strong> (<span id="assignStudentCode" class="font-monospace text-muted"></span>)</p>
+                    <div class="mb-3">
+                        <label class="form-label small text-uppercase fw-bold">Select Class</label>
+                        <select id="assignClassSelect" name="classId" class="form-select rounded-0" required></select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary rounded-0" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-crimson rounded-0" id="assignClassSubmitBtn">Save Class Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script type="module" src="js/pages/students.js"></script>
+</body>
+</html>

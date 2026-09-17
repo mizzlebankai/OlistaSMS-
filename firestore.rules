@@ -1,0 +1,101 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function olistarUser() {
+      return get(/databases/$(database)/documents/olistar_users/$(request.auth.uid)).data;
+    }
+
+    function isOlistarAdmin() {
+      return signedIn() && olistarUser().role == "admin";
+    }
+
+    function isOlistarTeacher() {
+      return signedIn() && (olistarUser().role == "teacher" || olistarUser().role == "staff");
+    }
+
+    // ---- Existing public-site collection (keep; do not delete) ----
+    match /applications/{docId} {
+      allow create: if true;
+      allow read, update: if signedIn();
+      allow delete: if isOlistarAdmin();
+    }
+
+    // ---- Live Olistar admissions (this is where your current applications sit) ----
+    match /admissions_applications/{docId} {
+      allow create: if true;
+      allow read, update: if signedIn();
+      allow delete: if isOlistarAdmin();
+    }
+
+    // ---- Slipsmart (do not change) ----
+    match /slipsmart_users/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role == "user";
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role == resource.data.role;
+      allow delete: if false;
+    }
+
+    // ---- Olistar SMS only (new collections, prefixed) ----
+    match /olistar_users/{uid} {
+      allow read: if true;
+      allow create, update: if isOlistarAdmin() || request.auth.uid == uid;
+      allow delete: if isOlistarAdmin();
+    }
+
+    match /olistar_students/{id} {
+      allow read: if true;
+      allow create, update, delete: if isOlistarAdmin();
+    }
+
+    match /olistar_teachers/{id} {
+      allow read: if signedIn();
+      allow create, update, delete: if isOlistarAdmin();
+    }
+
+    match /olistar_classes/{id} {
+      allow read: if signedIn();
+      allow create, update, delete: if isOlistarAdmin();
+    }
+
+    match /olistar_subjects/{id} {
+      allow read: if signedIn();
+      allow create, update, delete: if isOlistarAdmin();
+    }
+
+    match /olistar_attendance/{id} {
+      allow read: if signedIn();
+      allow create, update: if isOlistarAdmin() || isOlistarTeacher();
+      allow delete: if isOlistarAdmin();
+    }
+
+    match /olistar_grades/{id} {
+      allow read: if signedIn();
+      allow create, update: if isOlistarAdmin() || isOlistarTeacher();
+      allow delete: if isOlistarAdmin();
+    }
+
+    match /olistar_fees/{id} {
+      allow read: if signedIn();
+      allow create, update, delete: if isOlistarAdmin();
+    }
+
+    match /olistar_timetable/{id} {
+      allow read: if signedIn();
+      allow create, update, delete: if isOlistarAdmin();
+    }
+
+    match /olistar_announcements/{id} {
+      allow read: if signedIn();
+      allow create, update, delete: if isOlistarAdmin();
+    }
+  }
+}

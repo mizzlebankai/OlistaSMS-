@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timetable | Olistar School Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/sms.css">
+</head>
+<body>
+<div id="sms-shell">
+    <form id="ttForm" class="row g-2 align-items-end mb-4">
+        <div class="col-md-2"><label class="form-label">Class</label><select id="ttClass" class="form-select rounded-0"></select></div>
+        <div class="col-md-2"><label class="form-label">Day</label>
+            <select id="ttDay" class="form-select rounded-0">
+                <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+                <option>Thursday</option><option>Friday</option>
+            </select>
+        </div>
+        <div class="col-md-2"><label class="form-label">Period</label><input id="ttPeriod" class="form-control rounded-0" placeholder="1"></div>
+        <div class="col-md-3"><label class="form-label">Subject</label><select id="ttSubject" class="form-select rounded-0"></select></div>
+        <div class="col-md-2"><label class="form-label">Teacher</label><select id="ttTeacher" class="form-select rounded-0"></select></div>
+        <div class="col-md-1"><button class="btn btn-crimson w-100" type="submit">Add</button></div>
+    </form>
+    <div class="table-responsive">
+        <table class="table"><thead><tr><th>Class</th><th>Day</th><th>Period</th><th>Subject</th><th>Teacher</th><th class="text-end">Actions</th></tr></thead>
+        <tbody id="ttBody"></tbody></table>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script type="module" src="js/pages/timetable.js"></script>
+</body>
+</html>
