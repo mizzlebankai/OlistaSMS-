@@ -4,7 +4,6 @@ const path = require('path');
 
 const PORT = process.env.PORT || 5500;
 const ROOT = __dirname;
-const WEB_ROOT = path.resolve(__dirname, '..', 'olistar-school-web');
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -29,20 +28,7 @@ function resolveFilePath(reqUrl) {
 
   let normalized = path.normalize(reqPath).replace(/^[\\\/]+/, '').replace(/^(\.\.[\/\\])+/, '');
 
-  // 1. Explicit request to olistar-school-web
-  if (/^olistar-school-web([\\\/]|$)/i.test(normalized)) {
-    let rel = normalized.replace(/^olistar-school-web[\\\/]?/i, '');
-    if (!rel) rel = 'index.html';
-    let target = path.join(WEB_ROOT, rel);
-    try {
-      if (fs.existsSync(target) && fs.statSync(target).isDirectory()) {
-        target = path.join(target, 'index.html');
-      }
-    } catch (_) {}
-    return { filePath: target, reqPath };
-  }
-
-  // 2. Explicit request to OLISTAR
+  // Explicit request to OLISTAR
   if (/^olistar([\\\/]|$)/i.test(normalized)) {
     let rel = normalized.replace(/^olistar[\\\/]?/i, '');
     if (!rel) rel = 'login.html';
@@ -55,7 +41,7 @@ function resolveFilePath(reqUrl) {
     return { filePath: target, reqPath };
   }
 
-  // 3. Check in OLISTAR (ROOT) first
+  // Check in OLISTAR (ROOT)
   let rootTarget = path.join(ROOT, normalized);
   try {
     if (fs.existsSync(rootTarget)) {
@@ -63,17 +49,6 @@ function resolveFilePath(reqUrl) {
         rootTarget = path.join(rootTarget, 'login.html');
       }
       return { filePath: rootTarget, reqPath };
-    }
-  } catch (_) {}
-
-  // 4. Fallback check in olistar-school-web (WEB_ROOT)
-  let webTarget = path.join(WEB_ROOT, normalized);
-  try {
-    if (fs.existsSync(webTarget)) {
-      if (fs.statSync(webTarget).isDirectory()) {
-        webTarget = path.join(webTarget, 'index.html');
-      }
-      return { filePath: webTarget, reqPath };
     }
   } catch (_) {}
 

@@ -88,16 +88,10 @@ export async function writeUserProfile(uid, data) {
 }
 
 export function portalActionUrl() {
-    if (location.pathname.toLowerCase().includes("olistar-school-web")) {
-        return new URL("../OLISTAR/auth-action.html", location.href).href;
-    }
     return new URL("auth-action.html", location.href).href;
 }
 
 export function portalLoginUrl() {
-    if (location.pathname.toLowerCase().includes("olistar-school-web")) {
-        return new URL("../OLISTAR/login.html", location.href).href;
-    }
     return new URL("login.html", location.href).href;
 }
 

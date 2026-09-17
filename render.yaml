@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: olistar-sms-portal
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /login.html
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
