@@ -4,7 +4,7 @@ import { listenAll, boardingLabel, patchRow } from "../store.js";
 import { provisionStudentRecord } from "../enroll-student.js";
 import { printStudentForm } from "../print-student.js";
 import { escapeHtml } from "../provision-auth.js";
-import { deleteAdminRecord } from "../admin-delete.js";
+import { deleteAdminRecord, deleteStudentData } from "../admin-delete.js";
 
 const { profile, role } = await requireSession({ roles: ["admin", "teacher"] });
 mountShell(profile, { title: "Students", active: "students.html" });
@@ -121,8 +121,8 @@ document.getElementById("studentBody").addEventListener("click", async (e) => {
         collection: "students",
         id: student?.id,
         label: `student profile for ${student?.fullName || "this student"}`,
-        note: "Linked grades, fees, and attendance remain preserved. The Firebase Auth login remains, but its portal profile is removed so dashboard access is blocked.",
-        related: student?.authUid ? [{ collection: "users", id: student.authUid }] : []
+        note: "The student profile, grades, fees, attendance entries, admissions records, and portal profile will be permanently removed. The Firebase Auth login itself requires server-side deletion.",
+        onDelete: () => deleteStudentData(student)
     });
 });
 

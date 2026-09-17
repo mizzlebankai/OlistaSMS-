@@ -9,7 +9,7 @@ import {
     writeUserProfile,
     escapeHtml
 } from "../provision-auth.js";
-import { deleteAdminRecord } from "../admin-delete.js";
+import { deleteAdminRecord, deleteTeacherData } from "../admin-delete.js";
 
 const { profile } = await requireSession({ roles: ["admin"] });
 mountShell(profile, { title: "Teachers & staff", active: "teachers.html" });
@@ -38,8 +38,8 @@ document.getElementById("staffBody").addEventListener("click", async (e) => {
         collection: "teachers",
         id: member?.id,
         label: `staff record for ${member?.name || "this person"}`,
-        note: "The Firebase Auth login remains in Firebase Auth, but its portal profile is removed so dashboard access is blocked.",
-        related: member?.authUid ? [{ collection: "users", id: member.authUid }] : []
+        note: "The staff profile, assigned timetable slots, class-teacher links, and portal profile will be permanently removed. The Firebase Auth login itself requires server-side deletion.",
+        onDelete: () => deleteTeacherData(member)
     });
 });
 

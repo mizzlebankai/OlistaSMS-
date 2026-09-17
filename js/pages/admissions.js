@@ -1,9 +1,9 @@
 import { requireSession } from "../auth.js";
 import { mountShell } from "../app-shell.js";
-import { listenAll, boardingLabel, patchRow } from "../store.js";
+import { listenAll, boardingLabel, patchRow, removeRow } from "../store.js";
 import { provisionFromApplication } from "../enroll-student.js";
 import { escapeHtml } from "../provision-auth.js";
-import { deleteAdminRecord } from "../admin-delete.js";
+import { deleteAdminRecord, deleteStudentData } from "../admin-delete.js";
 
 const { profile } = await requireSession({ roles: ["admin"] });
 mountShell(profile, { title: "Admissions inbox", active: "admissions.html" });
@@ -52,11 +52,12 @@ body.addEventListener("click", async (e) => {
             collection: "applications",
             id: app?.id,
             label: `admission application for ${app?.fullName || "this student"}`,
-            note: app?.studentId ? "The linked student profile will also be removed." : "",
-            related: app?.studentId ? [
-                { collection: "students", id: app.studentId },
-                ...(students.find((item) => item.id === app.studentId)?.authUid ? [{ collection: "users", id: students.find((item) => item.id === app.studentId).authUid }] : [])
-            ] : []
+            note: app?.studentId ? "The linked student profile and all linked Firestore records will also be removed." : "",
+            onDelete: async () => {
+                const student = students.find((item) => item.id === app?.studentId);
+                if (student) await deleteStudentData(student);
+                else await removeRow("applications", app.id);
+            }
         });
         return;
     }

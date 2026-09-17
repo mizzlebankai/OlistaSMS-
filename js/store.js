@@ -35,6 +35,11 @@ export async function getById(name, id) {
     return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
+export async function getAll(name) {
+    const snap = await getDocs(col(name));
+    return snap.docs.map((item) => ({ id: item.id, ...item.data() }));
+}
+
 export async function addRow(name, data) {
     const ref = await addDoc(col(name), { ...data, createdAt: serverTimestamp() });
     return ref.id;
