@@ -40,6 +40,7 @@ function getAdminApp() {
       configError.statusCode = 500;
       throw configError;
     }
+    serviceAccount.private_key = String(serviceAccount.private_key).replace(/\\n/g, "\n");
     return initializeApp({ credential: cert(serviceAccount), projectId: serviceAccount.project_id });
   }
 
@@ -50,6 +51,18 @@ function getAdminApp() {
   const configError = new Error("Firebase Admin is not configured. Add FIREBASE_SERVICE_ACCOUNT_JSON to the Netlify function environment and redeploy.");
   configError.statusCode = 500;
   throw configError;
+}
+
+function getAdminConfigStatus() {
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if (!raw) return { configured: false, missing: ["FIREBASE_SERVICE_ACCOUNT_JSON"] };
+  try {
+    const value = JSON.parse(raw);
+    const missing = ["project_id", "client_email", "private_key"].filter((key) => !value[key]);
+    return { configured: missing.length === 0, missing };
+  } catch (_) {
+    return { configured: false, invalidJson: true };
+  }
 }
 
 function allowedAdminEmails() {
@@ -189,4 +202,4 @@ async function purgeTeacherData({ teacher, idToken }) {
   return { deleted: true };
 }
 
-module.exports = { deleteAuthUser, getAdminApp, purgeStudentData, purgeTeacherData };
+module.exports = { deleteAuthUser, getAdminApp, getAdminConfigStatus, purgeStudentData, purgeTeacherData };

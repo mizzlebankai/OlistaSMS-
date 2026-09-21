@@ -1,4 +1,4 @@
-const { deleteAuthUser, purgeStudentData, purgeTeacherData } = require("../../server-auth-delete");
+const { deleteAuthUser, purgeStudentData, purgeTeacherData, getAdminConfigStatus } = require("../../server-auth-delete");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -19,9 +19,12 @@ exports.handler = async (event) => {
       : await deleteAuthUser({ uid: body.uid, idToken });
     return { statusCode: 200, body: JSON.stringify(result) };
   } catch (error) {
+    const safeMessage = error.message?.includes("not configured") || error.message?.includes("missing") || error.message?.includes("not valid JSON")
+      ? error.message
+      : "Unable to purge Firebase records. Check the Netlify Function configuration and deployment logs.";
     return {
       statusCode: error.statusCode || 500,
-      body: JSON.stringify({ error: error.message || "Unable to delete Auth account." })
+      body: JSON.stringify({ error: safeMessage, config: error.statusCode === 500 ? getAdminConfigStatus() : undefined })
     };
   }
 };
