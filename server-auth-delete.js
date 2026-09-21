@@ -26,6 +26,21 @@ function getAdminApp() {
   if (getApps().length) return getApp();
 
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  const splitServiceAccount = {
+    project_id: process.env.FIREBASE_PROJECT_ID,
+    client_email: process.env.FIREBASE_CLIENT_EMAIL,
+    private_key: process.env.FIREBASE_PRIVATE_KEY
+  };
+  const hasSplitCredentials = Object.values(splitServiceAccount).every(Boolean);
+
+  if (hasSplitCredentials) {
+    splitServiceAccount.private_key = String(splitServiceAccount.private_key).replace(/\\n/g, "\n");
+    return initializeApp({
+      credential: cert(splitServiceAccount),
+      projectId: splitServiceAccount.project_id
+    });
+  }
+
   if (serviceAccountJson) {
     let serviceAccount;
     try {
@@ -55,6 +70,9 @@ function getAdminApp() {
 
 function getAdminConfigStatus() {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  const splitKeys = ["FIREBASE_PROJECT_ID", "FIREBASE_CLIENT_EMAIL", "FIREBASE_PRIVATE_KEY"];
+  const splitPresent = splitKeys.filter((key) => Boolean(process.env[key]));
+  if (splitPresent.length === splitKeys.length) return { configured: true, format: "split" };
   if (!raw) return { configured: false, missing: ["FIREBASE_SERVICE_ACCOUNT_JSON"] };
   try {
     const value = JSON.parse(raw);

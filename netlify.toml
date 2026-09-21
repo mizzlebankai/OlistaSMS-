@@ -1,6 +1,9 @@
 [build]
   publish = "."
 
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "FIREBASE_PROJECT_ID,OLISTAR_ADMIN_EMAILS"
+
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
