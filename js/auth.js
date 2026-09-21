@@ -121,7 +121,7 @@ export async function loginAs(roleTab, identifier, password) {
         return cred;
     }
 
-    const profile = await lookupProfileForLogin(emailInput);
+    const profile = await resolveProfileForLogin(emailInput);
     if (roleTab && profile.role && profile.role !== roleTab) {
         throw new Error(`This login belongs to a ${profile.role}. Switch to the "${profile.role.toUpperCase()}" tab.`);
     }
@@ -209,8 +209,26 @@ export async function lookupProfileForLogin(identifier) {
     return matches[0];
 }
 
+async function resolveProfileForLogin(identifier) {
+    const normalizedInput = String(identifier || "").trim().toLowerCase();
+    try {
+        const response = await fetch("api/resolve-login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ identifier: normalizedInput })
+        });
+        if (response.ok) {
+            const result = await response.json();
+            if (result.authEmail) return result;
+        }
+    } catch (_) {
+        // Fall back to the signed-in Firestore path for local setups without the lookup endpoint.
+    }
+    return lookupProfileForLogin(normalizedInput);
+}
+
 export async function resendVerification(identifier, password) {
-    const profile = await lookupProfileForLogin(identifier);
+    const profile = await resolveProfileForLogin(identifier);
     const authEmail = profile.contactEmail || profile.institutionalEmail;
     if (!authEmail) {
         throw new Error("This profile has no registered contact email on file.");

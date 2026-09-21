@@ -6,6 +6,11 @@
   to = "/.netlify/functions/delete-auth-user"
   status = 200
 
+[[redirects]]
+  from = "/api/resolve-login"
+  to = "/.netlify/functions/resolve-login"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]

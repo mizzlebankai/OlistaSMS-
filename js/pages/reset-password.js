@@ -1,4 +1,3 @@
-import { findUsersByInstitutionalEmail, findUserByContactEmail } from "../store.js";
 import { sendResetToContactEmail } from "../provision-auth.js";
 
 const form = document.getElementById("resetForm");
@@ -8,12 +7,15 @@ form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const identifier = document.getElementById("resetEmail").value.trim().toLowerCase();
     try {
-        let matches = await findUsersByInstitutionalEmail(identifier);
-        if (!matches.length) matches = await findUserByContactEmail(identifier);
-        if (!matches.length) throw new Error("No student or staff account found for that login ID.");
-        const profile = matches[0];
+        const response = await fetch("api/resolve-login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ identifier })
+        });
+        const profile = await response.json();
+        if (!response.ok || !profile.authEmail) throw new Error("No student or staff account found for that login ID.");
         if (profile.role === "admin") throw new Error("Administrators reset passwords from the Firebase console.");
-        await sendResetToContactEmail(profile.contactEmail);
+        await sendResetToContactEmail(profile.authEmail);
         window.location.replace("login.html?reset=1");
     } catch (err) {
         alertBox.className = "alert alert-danger rounded-0";

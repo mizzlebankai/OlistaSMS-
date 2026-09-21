@@ -2,6 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { deleteAuthUser } = require('./server-auth-delete');
+const { resolveLoginIdentifier } = require('./server-login-lookup');
 
 const PORT = process.env.PORT || 5500;
 const ROOT = __dirname;
@@ -94,6 +95,22 @@ const server = http.createServer((req, res) => {
           'X-Content-Type-Options': 'nosniff'
         });
         res.end(JSON.stringify({ error: error.message || 'Unable to delete Auth account.' }));
+      }
+    });
+    return;
+  }
+
+  if (req.method === 'POST' && req.url.split('?')[0] === '/api/resolve-login') {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const result = await resolveLoginIdentifier(JSON.parse(body || '{}').identifier);
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify(result || {}));
+      } catch (error) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ error: 'Login lookup is temporarily unavailable.' }));
       }
     });
     return;

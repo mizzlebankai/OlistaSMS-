@@ -64,4 +64,4 @@ async function deleteAuthUser({ uid, idToken }) {
   }
 }
 
-module.exports = { deleteAuthUser };
+module.exports = { deleteAuthUser, getAdminApp };
