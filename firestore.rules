@@ -46,13 +46,13 @@ service cloud.firestore {
 
     // ---- Olistar SMS only (new collections, prefixed) ----
     match /olistar_users/{uid} {
-      allow read: if true;
+      allow read: if signedIn() && (request.auth.uid == uid || isOlistarAdmin());
       allow create, update: if isOlistarAdmin() || request.auth.uid == uid;
       allow delete: if isOlistarAdmin();
     }
 
     match /olistar_students/{id} {
-      allow read: if true;
+      allow read: if signedIn();
       allow create, update, delete: if isOlistarAdmin();
     }
 

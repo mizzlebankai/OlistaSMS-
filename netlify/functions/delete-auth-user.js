@@ -2,7 +2,11 @@ const { deleteAuthUser } = require("../../server-auth-delete");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: JSON.stringify({ error: "Method not allowed." }) };
+    return { statusCode: 405, headers: { "Allow": "POST" }, body: JSON.stringify({ error: "Method not allowed." }) };
+  }
+
+  if (Buffer.byteLength(event.body || "", "utf8") > 16 * 1024) {
+    return { statusCode: 413, body: JSON.stringify({ error: "Request is too large." }) };
   }
 
   try {

@@ -5,6 +5,7 @@ const { deleteAuthUser } = require('./server-auth-delete');
 
 const PORT = process.env.PORT || 5500;
 const ROOT = __dirname;
+const MAX_API_BODY_BYTES = 16 * 1024;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -59,17 +60,39 @@ function resolveFilePath(reqUrl) {
 const server = http.createServer((req, res) => {
   if (req.method === 'POST' && req.url.split('?')[0] === '/api/delete-auth-user') {
     let body = '';
-    req.on('data', (chunk) => { body += chunk; });
+    let bodyBytes = 0;
+    let rejected = false;
+    req.on('data', (chunk) => {
+      bodyBytes += chunk.length;
+      if (bodyBytes > MAX_API_BODY_BYTES) {
+        rejected = true;
+        return;
+      }
+      if (!rejected) body += chunk;
+    });
     req.on('end', async () => {
+      if (rejected) {
+        res.writeHead(413, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Request is too large.' }));
+        return;
+      }
       try {
         const result = await deleteAuthUser({
           uid: JSON.parse(body || '{}').uid,
           idToken: String(req.headers.authorization || '').replace(/^Bearer\s+/i, '')
         });
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.writeHead(200, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+          'X-Content-Type-Options': 'nosniff'
+        });
         res.end(JSON.stringify(result));
       } catch (error) {
-        res.writeHead(error.statusCode || 500, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.writeHead(error.statusCode || 500, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+          'X-Content-Type-Options': 'nosniff'
+        });
         res.end(JSON.stringify({ error: error.message || 'Unable to delete Auth account.' }));
       }
     });
@@ -80,7 +103,10 @@ const server = http.createServer((req, res) => {
 
   fs.stat(filePath, (err, stats) => {
     if (err || !stats.isFile()) {
-      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.writeHead(404, {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Content-Type-Options': 'nosniff'
+      });
       res.end('404 Not Found: ' + reqPath);
       return;
     }
@@ -96,7 +122,9 @@ const server = http.createServer((req, res) => {
       }
       res.writeHead(200, {
         'Content-Type': contentType,
-        'Access-Control-Allow-Origin': '*'
+        'X-Content-Type-Options': 'nosniff',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+        'Content-Security-Policy': "default-src 'self' https://www.gstatic.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: https://placehold.co https://*.googleusercontent.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdn.jsdelivr.net https://apis.google.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com; frame-src https://*.firebaseapp.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
       });
       res.end(content);
     });

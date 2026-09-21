@@ -19,10 +19,12 @@ async function deleteAuthAccount(uid) {
 }
 
 async function deleteRows(collection, rows) {
-    await Promise.all(rows.filter((row) => row?.id).map((row) => removeRow(collection, row.id)));
+    const safeRows = Array.isArray(rows) ? rows : [];
+    await Promise.all(safeRows.filter((row) => row?.id).map((row) => removeRow(collection, row.id)));
 }
 
 export async function deleteStudentData(student) {
+    if (!student?.id) throw new Error("The selected student record is unavailable. Refresh the page and try again.");
     if (student.authUid) await deleteAuthAccount(student.authUid);
 
     const [grades, fees, attendance, applications] = await Promise.all([
@@ -32,13 +34,14 @@ export async function deleteStudentData(student) {
         getAll("applications")
     ]);
 
-    await deleteRows("grades", grades.filter((row) => row.studentId === student.id));
-    await deleteRows("fees", fees.filter((row) => row.studentId === student.id));
-    await deleteRows("applications", applications.filter((row) => row.studentId === student.id));
+    await deleteRows("grades", (Array.isArray(grades) ? grades : []).filter((row) => row.studentId === student.id));
+    await deleteRows("fees", (Array.isArray(fees) ? fees : []).filter((row) => row.studentId === student.id));
+    await deleteRows("applications", (Array.isArray(applications) ? applications : []).filter((row) => row.studentId === student.id));
 
-    await Promise.all(attendance.map(async (row) => {
-        const records = Array.isArray(row.records) ? row.records.filter((item) => item.studentId !== student.id) : [];
-        if (records.length === (row.records || []).length) return;
+    await Promise.all((Array.isArray(attendance) ? attendance : []).map(async (row) => {
+        const existingRecords = Array.isArray(row.records) ? row.records : [];
+        const records = existingRecords.filter((item) => item?.studentId !== student.id);
+        if (records.length === existingRecords.length) return;
         if (records.length) await patchRow("attendance", row.id, { records });
         else await removeRow("attendance", row.id);
     }));
