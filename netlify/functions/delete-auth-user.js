@@ -1,4 +1,4 @@
-const { deleteAuthUser } = require("../../server-auth-delete");
+const { deleteAuthUser, purgeStudentData } = require("../../server-auth-delete");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -11,10 +11,10 @@ exports.handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body || "{}");
-    const result = await deleteAuthUser({
-      uid: body.uid,
-      idToken: event.headers.authorization?.replace(/^Bearer\s+/i, "")
-    });
+    const idToken = event.headers.authorization?.replace(/^Bearer\s+/i, "");
+    const result = body.student
+      ? await purgeStudentData({ student: body.student, idToken })
+      : await deleteAuthUser({ uid: body.uid, idToken });
     return { statusCode: 200, body: JSON.stringify(result) };
   } catch (error) {
     return {

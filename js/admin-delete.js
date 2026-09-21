@@ -2,70 +2,37 @@ import { getAll, patchRow, removeRow } from "./store.js";
 import { auth } from "./auth.js";
 import { removeLoginIndexEntry } from "./provision-auth.js";
 
-async function deleteAuthAccount(uid) {
-    if (!uid) return;
-    const token = await auth.currentUser?.getIdToken();
-    if (!token) throw new Error("Your administrator session has expired. Sign in again before deleting data.");
-
-    const response = await fetch("api/delete-auth-user", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ uid })
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.error || "Firebase Auth account could not be deleted.");
-}
-
-async function deleteRows(collection, rows) {
-    const safeRows = Array.isArray(rows) ? rows : [];
-    await Promise.all(safeRows.filter((row) => row?.id).map((row) => removeRow(collection, row.id)));
-}
-
 export async function deleteStudentData(student) {
     if (!student?.id) throw new Error("The selected student record is unavailable. Refresh the page and try again.");
-    if (student.authUid) await deleteAuthAccount(student.authUid);
-
-    const [grades, fees, attendance, applications] = await Promise.all([
-        getAll("grades"),
-        getAll("fees"),
-        getAll("attendance"),
-        getAll("applications")
-    ]);
-
-    await deleteRows("grades", (Array.isArray(grades) ? grades : []).filter((row) => row.studentId === student.id));
-    await deleteRows("fees", (Array.isArray(fees) ? fees : []).filter((row) => row.studentId === student.id));
-    await deleteRows("applications", (Array.isArray(applications) ? applications : []).filter((row) => row.studentId === student.id));
-
-    await Promise.all((Array.isArray(attendance) ? attendance : []).map(async (row) => {
-        const existingRecords = Array.isArray(row.records) ? row.records : [];
-        const records = existingRecords.filter((item) => item?.studentId !== student.id);
-        if (records.length === existingRecords.length) return;
-        if (records.length) await patchRow("attendance", row.id, { records });
-        else await removeRow("attendance", row.id);
-    }));
-
-    await removeRow("students", student.id);
-    if (student.authUid) await removeRow("users", student.authUid);
-    await removeLoginIndexEntry({
-        institutionalEmail: student.institutionalEmail,
-        studentCode: student.studentCode
-    }).catch(() => {});
+    const token = await auth.currentUser?.getIdToken(true);
+    if (!token) throw new Error("Your administrator session has expired. Sign in again before deleting data.");
+    const response = await fetch("api/delete-auth-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ student })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || "Firebase records could not be purged.");
 }
 
 export async function deleteTeacherData(member) {
-    if (member.authUid) await deleteAuthAccount(member.authUid);
-
+    const token = await auth.currentUser?.getIdToken(true);
+    if (!token) throw new Error("Your administrator session has expired. Sign in again before deleting data.");
+    if (member.authUid) {
+        const response = await fetch("api/delete-auth-user", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ uid: member.authUid })
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || "Firebase Auth account could not be deleted.");
+    }
     const [timetable, classes] = await Promise.all([getAll("timetable"), getAll("classes")]);
-    await deleteRows("timetable", timetable.filter((row) => row.teacherId === member.id));
-    await Promise.all(classes.filter((row) => row.teacherId === member.id).map((row) => patchRow("classes", row.id, { teacherId: "" })));
+    await Promise.all((Array.isArray(timetable) ? timetable : []).filter((row) => row.teacherId === member.id).map((row) => removeRow("timetable", row.id)));
+    await Promise.all((Array.isArray(classes) ? classes : []).filter((row) => row.teacherId === member.id).map((row) => patchRow("classes", row.id, { teacherId: "" })));
     await removeRow("teachers", member.id);
     if (member.authUid) await removeRow("users", member.authUid);
-    await removeLoginIndexEntry({
-        institutionalEmail: member.institutionalEmail
-    }).catch(() => {});
+    await removeLoginIndexEntry({ institutionalEmail: member.institutionalEmail });
 }
 
 export async function deleteAdminRecord({ button, collection, id, label, note = "", related = [], onDelete = null }) {

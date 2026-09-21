@@ -288,7 +288,9 @@ export async function resolveProfileForLogin(identifier) {
                     return {
                         id: data.uid || snap.id,
                         authEmail: String(data.authEmail || "").trim().toLowerCase(),
-                        role: data.role || "student"
+                        role: data.role || "student",
+                        studentId: data.studentId || null,
+                        teacherId: data.teacherId || null
                     };
                 }
             }
@@ -346,7 +348,14 @@ export async function syncLoginIndex() {
             const code = String(u.studentCode || "").trim();
             const role = u.role || "student";
             if (!authEmail) continue;
-            const info = { authEmail, role, uid: d.id, updatedAt: serverTimestamp() };
+            const info = {
+                authEmail,
+                role,
+                uid: d.id,
+                studentId: u.studentId || "",
+                teacherId: u.teacherId || "",
+                updatedAt: serverTimestamp()
+            };
             if (instEmail) {
                 tasks.push(setDoc(doc(db, COL.loginIndex, instEmail), info, { merge: true }));
             }

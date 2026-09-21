@@ -11,11 +11,26 @@ service cloud.firestore {
     }
 
     function isOlistarAdmin() {
-      return signedIn() && olistarUser().role == "admin";
+      return signedIn() && (
+        (request.auth.token.email != null &&
+         request.auth.token.email.lower() in [
+           "mizzlebankai@gmail.com"
+         ]) ||
+        (exists(/databases/$(database)/documents/olistar_users/$(request.auth.uid)) &&
+         olistarUser().role == "admin")
+      );
     }
 
     function isOlistarTeacher() {
-      return signedIn() && (olistarUser().role == "teacher" || olistarUser().role == "staff");
+      return signedIn() && (
+        exists(/databases/$(database)/documents/olistar_users/$(request.auth.uid)) &&
+        (olistarUser().role == "teacher" || olistarUser().role == "staff")
+      );
+    }
+
+    function isOwnStudent(id) {
+      return signedIn() && exists(/databases/$(database)/documents/olistar_users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/olistar_users/$(request.auth.uid)).data.studentId == id;
     }
 
     // ---- Existing public-site collection (keep; do not delete) ----
@@ -60,7 +75,9 @@ service cloud.firestore {
 
     match /olistar_students/{id} {
       allow read: if signedIn();
-      allow create, update, delete: if isOlistarAdmin();
+      allow create, delete: if isOlistarAdmin();
+      allow update: if isOlistarAdmin() || (isOwnStudent(id)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["accountStatus", "verifiedAt"]));
     }
 
     match /olistar_teachers/{id} {

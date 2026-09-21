@@ -78,13 +78,15 @@ export async function createAuthAccount({ contactEmail, password, displayName })
     return uid;
 }
 
-export async function saveLoginIndexEntry({ institutionalEmail, studentCode, contactEmail, role, uid }) {
+export async function saveLoginIndexEntry({ institutionalEmail, studentCode, contactEmail, role, uid, studentId, teacherId }) {
     const authEmail = String(contactEmail || "").trim().toLowerCase();
     if (!authEmail) return;
     const info = {
         authEmail,
         role: role || "student",
         uid: uid || "",
+        studentId: studentId || "",
+        teacherId: teacherId || "",
         updatedAt: serverTimestamp()
     };
     const tasks = [];
@@ -95,7 +97,7 @@ export async function saveLoginIndexEntry({ institutionalEmail, studentCode, con
         tasks.push(setDoc(doc(db, COL.loginIndex, String(studentCode).trim().toUpperCase()), info, { merge: true }));
         tasks.push(setDoc(doc(db, COL.loginIndex, String(studentCode).trim().toLowerCase()), info, { merge: true }));
     }
-    await Promise.allSettled(tasks);
+    await Promise.all(tasks);
 }
 
 export async function removeLoginIndexEntry({ institutionalEmail, studentCode }) {
@@ -107,7 +109,7 @@ export async function removeLoginIndexEntry({ institutionalEmail, studentCode })
         tasks.push(deleteDoc(doc(db, COL.loginIndex, String(studentCode).trim().toUpperCase())));
         tasks.push(deleteDoc(doc(db, COL.loginIndex, String(studentCode).trim().toLowerCase())));
     }
-    await Promise.allSettled(tasks);
+    await Promise.all(tasks);
 }
 
 export async function writeUserProfile(uid, data) {
@@ -124,7 +126,9 @@ export async function writeUserProfile(uid, data) {
         studentCode: data.studentCode,
         contactEmail: contEmail,
         role: data.role,
-        uid
+        uid,
+        studentId: data.studentId,
+        teacherId: data.teacherId
     }).catch((err) => console.warn("Could not save login index:", err));
 }
 

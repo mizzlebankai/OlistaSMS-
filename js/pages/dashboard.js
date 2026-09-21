@@ -2,6 +2,7 @@ import { requireSession } from "../auth.js";
 import { mountShell } from "../app-shell.js";
 import { listenAll, boardingLabel, removeRow } from "../store.js";
 import { escapeHtml } from "../provision-auth.js";
+import { deleteStudentData } from "../admin-delete.js";
 
 const { profile, role } = await requireSession();
 mountShell(profile, { title: "Dashboard", active: "dashboard.html" });
@@ -180,22 +181,7 @@ deleteBatchBtn?.addEventListener("click", async () => {
 
     try {
         for (const s of matchingStudents) {
-            // Delete user login record
-            if (s.authUid) {
-                await removeRow("users", s.authUid).catch(() => {});
-            }
-            // Delete linked grades
-            const studentGrades = state.grades.filter((g) => g.studentId === s.id);
-            for (const g of studentGrades) {
-                await removeRow("grades", g.id).catch(() => {});
-            }
-            // Delete linked fee records
-            const studentFees = state.fees.filter((f) => f.studentId === s.id);
-            for (const f of studentFees) {
-                await removeRow("fees", f.id).catch(() => {});
-            }
-            // Delete student doc
-            await removeRow("students", s.id);
+            await deleteStudentData(s);
         }
 
         alert(`Batch "${targetBatch}" and its ${count} student records have been permanently deleted.`);

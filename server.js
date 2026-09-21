@@ -1,7 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { deleteAuthUser } = require('./server-auth-delete');
+const { deleteAuthUser, purgeStudentData } = require('./server-auth-delete');
 const { resolveLoginIdentifier } = require('./server-login-lookup');
 
 const PORT = process.env.PORT || 5500;
@@ -78,10 +78,11 @@ const server = http.createServer((req, res) => {
         return;
       }
       try {
-        const result = await deleteAuthUser({
-          uid: JSON.parse(body || '{}').uid,
-          idToken: String(req.headers.authorization || '').replace(/^Bearer\s+/i, '')
-        });
+        const requestBody = JSON.parse(body || '{}');
+        const idToken = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+        const result = requestBody.student
+          ? await purgeStudentData({ student: requestBody.student, idToken })
+          : await deleteAuthUser({ uid: requestBody.uid, idToken });
         res.writeHead(200, {
           'Content-Type': 'application/json; charset=utf-8',
           'Cache-Control': 'no-store',
