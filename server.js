@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { deleteAuthUser } = require('./server-auth-delete');
 
 const PORT = process.env.PORT || 5500;
 const ROOT = __dirname;
@@ -56,6 +57,25 @@ function resolveFilePath(reqUrl) {
 }
 
 const server = http.createServer((req, res) => {
+  if (req.method === 'POST' && req.url.split('?')[0] === '/api/delete-auth-user') {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const result = await deleteAuthUser({
+          uid: JSON.parse(body || '{}').uid,
+          idToken: String(req.headers.authorization || '').replace(/^Bearer\s+/i, '')
+        });
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(result));
+      } catch (error) {
+        res.writeHead(error.statusCode || 500, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: error.message || 'Unable to delete Auth account.' }));
+      }
+    });
+    return;
+  }
+
   const { filePath, reqPath } = resolveFilePath(req.url);
 
   fs.stat(filePath, (err, stats) => {

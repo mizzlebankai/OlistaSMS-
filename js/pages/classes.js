@@ -22,17 +22,23 @@ function renderSubjects() {
             return groups;
         }, new Map()).entries()).map(([classId, items]) => `
             <li class="list-group-item rounded-0 p-0">
-                <div class="bg-light border-bottom px-3 py-2 fw-bold">${escapeHtml(classes.find((c) => c.id === classId)?.name || "All classes / Unassigned")}</div>
+                <div class="bg-light border-bottom px-3 py-2 fw-bold">${escapeHtml(classLabel(classId))}</div>
                 ${items.map((s) => `<div class="px-3 py-2 d-flex justify-content-between align-items-center border-bottom"><span>${escapeHtml(s.name)}</span><button class="btn btn-sm btn-outline-danger delete-subject-btn" data-id="${s.id}"><i class="bi bi-trash"></i></button></div>`).join("")}
             </li>`).join("")
         : `<li class="list-group-item text-muted">No subjects yet.</li>`;
+}
+
+function classLabel(id) {
+    const item = classes.find((c) => c.id === id);
+    if (!item) return "Unassigned / Legacy subjects";
+    return [item.academicTier || "General", item.name, item.yearBatch ? `Batch ${item.yearBatch}` : ""].filter(Boolean).join(" · ");
 }
 
 function fillSelects() {
     document.getElementById("classTeacher").innerHTML =
         `<option value="">None</option>` + teachers.map((t) => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join("");
     document.getElementById("subjectClass").innerHTML =
-        `<option value="">All classes</option>` + classes.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
+        `<option value="" disabled selected>Select a class</option>` + classes.map((c) => `<option value="${c.id}">${escapeHtml(classLabel(c.id))}</option>`).join("");
 }
 
 function renderClasses() {
@@ -44,15 +50,24 @@ function renderClasses() {
            </div>`
         : "";
 
-    const listHtml = classes.map((c) => {
+    const groupedClasses = Array.from(classes.reduce((groups, item) => {
+        const key = item.academicTier || "General";
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(item);
+        return groups;
+    }, new Map()).entries());
+    const listHtml = groupedClasses.map(([tier, tierClasses]) => `
+        <li class="list-group-item rounded-0 p-0">
+            <div class="bg-light border-bottom px-3 py-2 fw-bold">${escapeHtml(tier)}</div>
+            ${tierClasses.map((c) => {
         const count = students.filter((s) => s.classId === c.id).length;
         const teacherName = teachers.find((t) => t.id === c.teacherId)?.name;
         return `
-            <li class="list-group-item rounded-0 d-flex justify-content-between align-items-center">
+            <div class="list-group-item rounded-0 d-flex justify-content-between align-items-center">
                 <div>
                     <strong>${escapeHtml(c.name)}</strong>
                     <div class="small text-muted">
-                        ${escapeHtml(c.academicTier || "General")} · Batch: ${escapeHtml(c.yearBatch || "N/A")}
+                        Batch: ${escapeHtml(c.yearBatch || "N/A")}
                         ${teacherName ? ` · Class Teacher: <span class="text-dark fw-semibold">${escapeHtml(teacherName)}</span>` : ""}
                     </div>
                 </div>
@@ -60,9 +75,10 @@ function renderClasses() {
                     <span class="badge ${count > 0 ? "bg-primary" : "bg-secondary"} rounded-pill">${count} student${count === 1 ? "" : "s"}</span>
                     <button class="btn btn-sm btn-outline-danger delete-class-btn" data-id="${c.id}"><i class="bi bi-trash"></i></button>
                 </div>
-            </li>
+            </div>
         `;
-    }).join("") || `<li class="list-group-item text-muted">No classes yet.</li>`;
+    }).join("")}
+        </li>`).join("") || `<li class="list-group-item text-muted">No classes yet.</li>`;
 
     document.getElementById("classList").innerHTML = unassignedHtml + listHtml;
 }

@@ -1,4 +1,4 @@
-import { addRow, patchRow, findStudentByApplication, findUsersByInstitutionalEmail } from "./store.js";
+import { addRow, patchRow, getAll, findStudentByApplication, findUsersByInstitutionalEmail } from "./store.js";
 import {
     createAuthAccount,
     generatePassword,
@@ -15,6 +15,35 @@ function normalizeBoarding(value) {
     return v === "boarding" || v === "day" ? v : "";
 }
 
+function normalizeClassValue(value) {
+    return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+async function resolveApplicationClass(input) {
+    const requestedId = String(input.classId || "").trim();
+    const requestedName = normalizeClassValue(
+        input.className || input.entryLevel || input.selectedClass || input.class || ""
+    );
+    if (!requestedId && !requestedName) return null;
+
+    const classes = await getAll("classes");
+    if (requestedId) {
+        const exactId = classes.find((item) => item.id === requestedId);
+        if (exactId) return exactId;
+    }
+    if (!requestedName) return null;
+
+    const requestedTier = normalizeClassValue(input.academicTier);
+    const matches = classes.filter((item) => {
+        const names = [item.name, item.className, item.entryLevel].map(normalizeClassValue);
+        return names.includes(requestedName);
+    });
+    const tierMatches = requestedTier
+        ? matches.filter((item) => normalizeClassValue(item.academicTier) === requestedTier)
+        : matches;
+    return (tierMatches.length === 1 ? tierMatches : matches.length === 1 ? matches : [])[0] || null;
+}
+
 export async function provisionStudentRecord(input) {
     const contactEmail = String(input.contactEmail || "").trim().toLowerCase();
     if (!contactEmail || !contactEmail.includes("@") || contactEmail.includes("no email")) {
@@ -29,6 +58,7 @@ export async function provisionStudentRecord(input) {
     const fullName = input.fullName || [input.firstName, input.middleName, input.lastName].filter(Boolean).join(" ");
     const firstName = input.firstName || fullName.split(" ")[0] || "student";
     const yearBatch = input.yearBatch || "2026/2027";
+    const assignedClass = await resolveApplicationClass(input);
 
     let institutionalEmail = input.institutionalEmail ? input.institutionalEmail.toLowerCase() : "";
     if (!institutionalEmail) {
@@ -62,8 +92,8 @@ export async function provisionStudentRecord(input) {
         prevSchool: input.prevSchool || "",
         academicTier: input.academicTier || "",
         programStream: input.programStream || input.stream || "",
-        entryLevel: input.entryLevel || "",
-        classId: input.classId || "",
+        entryLevel: assignedClass?.name || input.entryLevel || "",
+        classId: assignedClass?.id || input.classId || "",
         boardingStatus,
         guardianName: input.guardianName || "",
         relationship: input.relationship || "",
@@ -87,6 +117,7 @@ export async function provisionStudentRecord(input) {
         studentCode,
         institutionalEmail,
         contactEmail,
+        classId: assignedClass?.id || input.classId || "",
         accountStatus: "pending_verification"
     });
 
@@ -129,6 +160,8 @@ export async function provisionFromApplication(app) {
         prevSchool: app.prevSchool,
         academicTier: app.academicTier,
         programStream: app.stream || app.programStream,
+        classId: app.classId,
+        className: app.className || app.selectedClass || app.class,
         entryLevel: app.entryLevel,
         boardingStatus: app.boardingStatus && app.boardingStatus !== "N/A" ? app.boardingStatus : "day",
         guardianName: app.guardianName,

@@ -20,6 +20,10 @@ if (role === "student") {
 function nameOf(id) { return students.find((s) => s.id === id)?.fullName || id; }
 function subjectOf(id) { return subjects.find((s) => s.id === id)?.name || id; }
 function classNameOf(id) { return classes.find((c) => c.id === id)?.name || id || ""; }
+function classLabelOf(id) {
+    const item = classes.find((c) => c.id === id);
+    return item ? [item.academicTier || "General", item.name].filter(Boolean).join(" · ") : "Unassigned";
+}
 
 function getSelectedStudent() {
     const studentId = document.getElementById("gradeStudent")?.value;
@@ -140,6 +144,9 @@ document.querySelectorAll(".score-input").forEach((inp) => {
 document.getElementById("gradeStudent")?.addEventListener("change", () => {
     syncStudentAssessmentScheme();
     syncStudentSubjects();
+    const recordsFilter = document.getElementById("gradeRecordStudentFilter");
+    if (recordsFilter) recordsFilter.value = document.getElementById("gradeStudent").value || "all";
+    paint();
     if (role !== "student" && window.bootstrap?.Modal) {
         window.bootstrap.Modal.getOrCreateInstance(document.getElementById("selectedStudentResultsModal")).show();
     }
@@ -149,8 +156,17 @@ listenAll("students", (rows) => {
     students = rows;
     const sel = document.getElementById("gradeStudent");
     if (sel) {
+        const currentStudent = sel.value;
         sel.innerHTML = `<option value="" disabled selected>-- Select a student --</option>` +
-            rows.map((s) => `<option value="${s.id}">${escapeHtml(s.fullName)} (${escapeHtml(s.studentCode || "")})</option>`).join("");
+            rows.map((s) => `<option value="${s.id}">${escapeHtml(s.fullName)} · ${escapeHtml(classLabelOf(s.classId))} (${escapeHtml(s.studentCode || "")})</option>`).join("");
+        if (rows.some((s) => s.id === currentStudent)) sel.value = currentStudent;
+    }
+    const recordsFilter = document.getElementById("gradeRecordStudentFilter");
+    if (recordsFilter) {
+        const currentFilter = recordsFilter.value || "all";
+        recordsFilter.innerHTML = `<option value="all">All Students</option>` +
+            rows.map((s) => `<option value="${s.id}">${escapeHtml(s.fullName)} · ${escapeHtml(classLabelOf(s.classId))}</option>`).join("");
+        recordsFilter.value = rows.some((s) => s.id === currentFilter) ? currentFilter : "all";
     }
     syncStudentSubjects();
     paint();
@@ -191,21 +207,24 @@ listenAll("grades", (rows) => {
 document.getElementById("gradeClassFilter")?.addEventListener("change", paint);
 document.getElementById("gradeSubjectFilter")?.addEventListener("change", paint);
 document.getElementById("gradeTermFilter")?.addEventListener("change", paint);
+document.getElementById("gradeRecordStudentFilter")?.addEventListener("change", paint);
 
 function paint() {
     const classFilter = document.getElementById("gradeClassFilter")?.value || "all";
     const subjectFilter = document.getElementById("gradeSubjectFilter")?.value || "all";
     const termFilter = document.getElementById("gradeTermFilter")?.value || "all";
+    const studentFilter = document.getElementById("gradeRecordStudentFilter")?.value || "all";
 
     const baseVisible = role === "student"
         ? grades.filter((g) => g.studentId === profile.studentId)
         : grades;
 
     const filtered = baseVisible.filter((g) => {
+        const matchStudent = studentFilter === "all" || g.studentId === studentFilter;
         const matchClass = classFilter === "all" || g.classId === classFilter;
         const matchSubject = subjectFilter === "all" || g.subjectId === subjectFilter;
         const matchTerm = termFilter === "all" || g.term === termFilter;
-        return matchClass && matchSubject && matchTerm;
+        return matchStudent && matchClass && matchSubject && matchTerm;
     });
 
     document.getElementById("gradeBody").innerHTML = filtered.map((g) => {

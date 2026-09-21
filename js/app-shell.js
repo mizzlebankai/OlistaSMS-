@@ -39,7 +39,11 @@ export function mountShell(profile, { title = "Portal", active } = {}) {
                         <div class="small text-warning">School Portal</div>
                     </div>
                 </div>
-                <nav class="d-flex flex-column">${links}</nav>
+                <nav class="sms-desktop-nav d-flex flex-column">${links}</nav>
+                <details class="sms-mobile-nav">
+                    <summary><i class="bi bi-list me-1"></i> Menu</summary>
+                    <nav class="d-flex flex-column">${links}</nav>
+                </details>
                 <div class="mt-4 pt-3 border-top border-secondary">
                     <a href="${PUBLIC_SITE_URL}" class="d-flex align-items-center gap-2 text-white-50 text-decoration-none small py-1" target="_blank" rel="noopener">
                         <i class="bi bi-box-arrow-up-right"></i> Public Website

@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "olistar-sms-portal",
   "version": "1.0.0",
   "description": "Olistar School Management System Portal",
@@ -7,7 +7,14 @@
     "start": "node server.js",
     "dev": "node server.js"
   },
-  "keywords": ["olistar", "sms", "portal"],
+  "keywords": [
+    "olistar",
+    "sms",
+    "portal"
+  ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "firebase-admin": "^14.4.0"
+  }
 }

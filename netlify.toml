@@ -1,6 +1,11 @@
 [build]
   publish = "."
 
+[[redirects]]
+  from = "/api/delete-auth-user"
+  to = "/.netlify/functions/delete-auth-user"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]

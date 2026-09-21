@@ -1,10 +1,30 @@
 import { getAll, patchRow, removeRow } from "./store.js";
+import { auth } from "./auth.js";
+
+async function deleteAuthAccount(uid) {
+    if (!uid) return;
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) throw new Error("Your administrator session has expired. Sign in again before deleting data.");
+
+    const response = await fetch("api/delete-auth-user", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ uid })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || "Firebase Auth account could not be deleted.");
+}
 
 async function deleteRows(collection, rows) {
     await Promise.all(rows.filter((row) => row?.id).map((row) => removeRow(collection, row.id)));
 }
 
 export async function deleteStudentData(student) {
+    if (student.authUid) await deleteAuthAccount(student.authUid);
+
     const [grades, fees, attendance, applications] = await Promise.all([
         getAll("grades"),
         getAll("fees"),
@@ -28,6 +48,8 @@ export async function deleteStudentData(student) {
 }
 
 export async function deleteTeacherData(member) {
+    if (member.authUid) await deleteAuthAccount(member.authUid);
+
     const [timetable, classes] = await Promise.all([getAll("timetable"), getAll("classes")]);
     await deleteRows("timetable", timetable.filter((row) => row.teacherId === member.id));
     await Promise.all(classes.filter((row) => row.teacherId === member.id).map((row) => patchRow("classes", row.id, { teacherId: "" })));
