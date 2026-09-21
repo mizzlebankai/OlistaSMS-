@@ -44,6 +44,13 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ---- Olistar Login Index (maps student code / school email to auth email for login) ----
+    match /olistar_login_index/{identifier} {
+      allow get: if true;
+      allow list: if false;
+      allow write: if isOlistarAdmin();
+    }
+
     // ---- Olistar SMS only (new collections, prefixed) ----
     match /olistar_users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isOlistarAdmin());

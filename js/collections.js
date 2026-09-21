@@ -12,7 +12,8 @@ export const COL = {
     grades: "olistar_grades",
     fees: "olistar_fees",
     timetable: "olistar_timetable",
-    announcements: "olistar_announcements"
+    announcements: "olistar_announcements",
+    loginIndex: "olistar_login_index"
 };
 
 /** Only these Firebase Auth emails may become SMS admins. Slipsmart users must not be auto-promoted. */

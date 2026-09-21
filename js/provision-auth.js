@@ -5,7 +5,7 @@ import {
     signOut,
     updateProfile
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { doc, setDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { db, provisionAuth } from "./firebase-config.js";
 import { COL } from "./collections.js";
 
@@ -78,13 +78,54 @@ export async function createAuthAccount({ contactEmail, password, displayName })
     return uid;
 }
 
+export async function saveLoginIndexEntry({ institutionalEmail, studentCode, contactEmail, role, uid }) {
+    const authEmail = String(contactEmail || "").trim().toLowerCase();
+    if (!authEmail) return;
+    const info = {
+        authEmail,
+        role: role || "student",
+        uid: uid || "",
+        updatedAt: serverTimestamp()
+    };
+    const tasks = [];
+    if (institutionalEmail) {
+        tasks.push(setDoc(doc(db, COL.loginIndex, String(institutionalEmail).trim().toLowerCase()), info, { merge: true }));
+    }
+    if (studentCode) {
+        tasks.push(setDoc(doc(db, COL.loginIndex, String(studentCode).trim().toUpperCase()), info, { merge: true }));
+        tasks.push(setDoc(doc(db, COL.loginIndex, String(studentCode).trim().toLowerCase()), info, { merge: true }));
+    }
+    await Promise.allSettled(tasks);
+}
+
+export async function removeLoginIndexEntry({ institutionalEmail, studentCode }) {
+    const tasks = [];
+    if (institutionalEmail) {
+        tasks.push(deleteDoc(doc(db, COL.loginIndex, String(institutionalEmail).trim().toLowerCase())));
+    }
+    if (studentCode) {
+        tasks.push(deleteDoc(doc(db, COL.loginIndex, String(studentCode).trim().toUpperCase())));
+        tasks.push(deleteDoc(doc(db, COL.loginIndex, String(studentCode).trim().toLowerCase())));
+    }
+    await Promise.allSettled(tasks);
+}
+
 export async function writeUserProfile(uid, data) {
+    const instEmail = String(data.institutionalEmail || "").toLowerCase();
+    const contEmail = String(data.contactEmail || "").toLowerCase();
     await setDoc(doc(db, COL.users, uid), {
         ...data,
-        institutionalEmail: String(data.institutionalEmail || "").toLowerCase(),
-        contactEmail: String(data.contactEmail || "").toLowerCase(),
+        institutionalEmail: instEmail,
+        contactEmail: contEmail,
         createdAt: serverTimestamp()
     });
+    await saveLoginIndexEntry({
+        institutionalEmail: instEmail,
+        studentCode: data.studentCode,
+        contactEmail: contEmail,
+        role: data.role,
+        uid
+    }).catch((err) => console.warn("Could not save login index:", err));
 }
 
 export function portalActionUrl() {

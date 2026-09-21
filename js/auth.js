@@ -7,7 +7,7 @@ import {
     confirmPasswordReset,
     verifyPasswordResetCode
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { doc, getDoc, setDoc, updateDoc, getDocs, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { auth, db } from "./firebase-config.js";
 import {
     findUsersByInstitutionalEmail,
@@ -41,7 +41,9 @@ export async function ensureAdminProfile(user) {
         accountStatus: "active",
         createdAt: serverTimestamp()
     });
-    return getProfile(user.uid);
+    const p = await getProfile(user.uid);
+    syncLoginIndex().catch(() => {});
+    return p;
 }
 
 export function requireSession({ roles = null, loginPage = "login.html" } = {}) {
@@ -106,7 +108,12 @@ export function requireSession({ roles = null, loginPage = "login.html" } = {}) 
 }
 
 export async function loginAs(roleTab, identifier, password) {
-    const emailInput = identifier.trim().toLowerCase();
+    const rawInput = String(identifier || "").trim();
+    if (!rawInput) throw new Error("Please enter your login ID or email.");
+    if (!password) throw new Error("Please enter your password.");
+
+    const emailInput = rawInput.toLowerCase();
+
     if (roleTab === "admin") {
         const cred = await signInWithEmailAndPassword(auth, emailInput, password);
         const profile = await ensureAdminProfile(cred.user);
@@ -121,24 +128,60 @@ export async function loginAs(roleTab, identifier, password) {
         return cred;
     }
 
-    const profile = await resolveProfileForLogin(emailInput);
-    if (roleTab && profile.role && profile.role !== roleTab) {
-        throw new Error(`This login belongs to a ${profile.role}. Switch to the "${profile.role.toUpperCase()}" tab.`);
+    let authEmail = "";
+    let expectedRole = null;
+    let studentId = null;
+    let teacherId = null;
+
+    const isInstitutional = emailInput.endsWith("@students.olistar.edu.gh") ||
+                            emailInput.endsWith("@student.olistar.edu.gh") ||
+                            emailInput.endsWith("@staff.olistar.edu.gh");
+
+    if (!isInstitutional && emailInput.includes("@")) {
+        authEmail = emailInput;
+    } else {
+        const profile = await resolveProfileForLogin(emailInput);
+        if (!profile || !profile.authEmail) {
+            throw new Error("No account found for that login ID. Check the spelling or enter your student code.");
+        }
+        authEmail = profile.authEmail;
+        expectedRole = profile.role;
+        studentId = profile.studentId;
+        teacherId = profile.teacherId;
     }
 
-    const authEmail = profile.contactEmail || profile.institutionalEmail;
-    if (!authEmail) {
-        throw new Error("This profile is missing a registered contact email for authentication.");
+    if (roleTab && expectedRole && expectedRole !== roleTab) {
+        throw new Error(`This login belongs to a ${expectedRole}. Switch to the "${expectedRole.toUpperCase()}" tab.`);
     }
 
     const cred = await signInWithEmailAndPassword(auth, authEmail, password);
+
+    let profile = await getProfile(cred.user.uid);
+    if (!profile) {
+        profile = {
+            id: cred.user.uid,
+            role: expectedRole || roleTab,
+            contactEmail: authEmail,
+            studentId,
+            teacherId
+        };
+    }
+
+    const effectiveRole = profile.role || expectedRole || roleTab;
+    if (roleTab && effectiveRole && effectiveRole !== roleTab) {
+        await signOut(auth);
+        throw new Error(`This login belongs to a ${effectiveRole}. Switch to the "${effectiveRole.toUpperCase()}" tab.`);
+    }
+
     await reload(cred.user);
 
     if (cred.user.emailVerified) {
         const updates = { accountStatus: "active", verifiedAt: serverTimestamp() };
-        await updateDoc(doc(db, COL.users, profile.id), updates).catch(() => {});
-        if (profile.studentId) await updateDoc(doc(db, COL.students, profile.studentId), updates).catch(() => {});
-        if (profile.teacherId) await updateDoc(doc(db, COL.teachers, profile.teacherId), updates).catch(() => {});
+        await updateDoc(doc(db, COL.users, cred.user.uid), updates).catch(() => {});
+        const sid = profile.studentId || studentId;
+        const tid = profile.teacherId || teacherId;
+        if (sid) await updateDoc(doc(db, COL.students, sid), updates).catch(() => {});
+        if (tid) await updateDoc(doc(db, COL.teachers, tid), updates).catch(() => {});
     }
 
     if (!cred.user.emailVerified) {
@@ -209,8 +252,11 @@ export async function lookupProfileForLogin(identifier) {
     return matches[0];
 }
 
-async function resolveProfileForLogin(identifier) {
+export async function resolveProfileForLogin(identifier) {
     const normalizedInput = String(identifier || "").trim().toLowerCase();
+    if (!normalizedInput) return null;
+
+    // 1. Try serverless backend endpoint
     try {
         const response = await fetch("api/resolve-login", {
             method: "POST",
@@ -219,20 +265,66 @@ async function resolveProfileForLogin(identifier) {
         });
         if (response.ok) {
             const result = await response.json();
-            if (result.authEmail) return result;
+            if (result && result.authEmail) return result;
         }
     } catch (_) {
-        // Fall back to the signed-in Firestore path for local setups without the lookup endpoint.
+        // Backend not available or offline; proceed to Firestore index
     }
-    return lookupProfileForLogin(normalizedInput);
+
+    // 2. Try Firestore loginIndex collection (single-document get, rules permit allow get: if true)
+    try {
+        const candidates = [
+            normalizedInput,
+            normalizedInput.toUpperCase(),
+            normalizedInput.replace("@student.olistar.edu.gh", "@students.olistar.edu.gh"),
+            normalizedInput.replace("@students.olistar.edu.gh", "@student.olistar.edu.gh")
+        ];
+        for (const key of candidates) {
+            if (!key) continue;
+            const snap = await getDoc(doc(db, COL.loginIndex, key));
+            if (snap.exists()) {
+                const data = snap.data();
+                if (data && data.authEmail) {
+                    return {
+                        id: data.uid || snap.id,
+                        authEmail: String(data.authEmail || "").trim().toLowerCase(),
+                        role: data.role || "student"
+                    };
+                }
+            }
+        }
+    } catch (_) {
+        // Index not reachable
+    }
+
+    // 3. Fallback to signed-in lookup or return null gracefully without throwing permission error
+    try {
+        return await lookupProfileForLogin(normalizedInput);
+    } catch (_) {
+        return null;
+    }
 }
 
 export async function resendVerification(identifier, password) {
-    const profile = await resolveProfileForLogin(identifier);
-    const authEmail = profile.contactEmail || profile.institutionalEmail;
-    if (!authEmail) {
-        throw new Error("This profile has no registered contact email on file.");
+    const input = String(identifier || "").trim().toLowerCase();
+    if (!input) throw new Error("Please enter your login ID or registered contact email.");
+    if (!password) throw new Error("Please enter your password.");
+
+    const isInstitutional = input.endsWith("@students.olistar.edu.gh") ||
+                            input.endsWith("@student.olistar.edu.gh") ||
+                            input.endsWith("@staff.olistar.edu.gh");
+
+    let authEmail = "";
+    if (!isInstitutional && input.includes("@")) {
+        authEmail = input;
+    } else {
+        const profile = await resolveProfileForLogin(input);
+        if (!profile || !profile.authEmail) {
+            throw new Error("No account found for that login ID. Check the spelling or enter your registered contact email address.");
+        }
+        authEmail = profile.authEmail;
     }
+
     const cred = await signInWithEmailAndPassword(auth, authEmail, password);
     if (cred.user.emailVerified) {
         await signOut(auth);
@@ -241,6 +333,32 @@ export async function resendVerification(identifier, password) {
     await sendVerificationToUser(cred.user);
     await signOut(auth);
     return { alreadyVerified: false, contactEmail: authEmail };
+}
+
+export async function syncLoginIndex() {
+    try {
+        const usersSnap = await getDocs(collection(db, COL.users));
+        const tasks = [];
+        for (const d of usersSnap.docs) {
+            const u = d.data();
+            const authEmail = String(u.contactEmail || "").trim().toLowerCase();
+            const instEmail = String(u.institutionalEmail || "").trim().toLowerCase();
+            const code = String(u.studentCode || "").trim();
+            const role = u.role || "student";
+            if (!authEmail) continue;
+            const info = { authEmail, role, uid: d.id, updatedAt: serverTimestamp() };
+            if (instEmail) {
+                tasks.push(setDoc(doc(db, COL.loginIndex, instEmail), info, { merge: true }));
+            }
+            if (code) {
+                tasks.push(setDoc(doc(db, COL.loginIndex, code.toUpperCase()), info, { merge: true }));
+                tasks.push(setDoc(doc(db, COL.loginIndex, code.toLowerCase()), info, { merge: true }));
+            }
+        }
+        await Promise.allSettled(tasks);
+    } catch (err) {
+        console.warn("syncLoginIndex note:", err?.message || err);
+    }
 }
 
 export function logout(loginPage = "login.html") {

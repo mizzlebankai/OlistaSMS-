@@ -1,5 +1,6 @@
 import { getAll, patchRow, removeRow } from "./store.js";
 import { auth } from "./auth.js";
+import { removeLoginIndexEntry } from "./provision-auth.js";
 
 async function deleteAuthAccount(uid) {
     if (!uid) return;
@@ -48,6 +49,10 @@ export async function deleteStudentData(student) {
 
     await removeRow("students", student.id);
     if (student.authUid) await removeRow("users", student.authUid);
+    await removeLoginIndexEntry({
+        institutionalEmail: student.institutionalEmail,
+        studentCode: student.studentCode
+    }).catch(() => {});
 }
 
 export async function deleteTeacherData(member) {
@@ -58,6 +63,9 @@ export async function deleteTeacherData(member) {
     await Promise.all(classes.filter((row) => row.teacherId === member.id).map((row) => patchRow("classes", row.id, { teacherId: "" })));
     await removeRow("teachers", member.id);
     if (member.authUid) await removeRow("users", member.authUid);
+    await removeLoginIndexEntry({
+        institutionalEmail: member.institutionalEmail
+    }).catch(() => {});
 }
 
 export async function deleteAdminRecord({ button, collection, id, label, note = "", related = [], onDelete = null }) {

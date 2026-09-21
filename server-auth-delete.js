@@ -1,4 +1,5 @@
-const admin = require("firebase-admin");
+const { initializeApp, getApps, getApp, cert, applicationDefault } = require("firebase-admin/app");
+const { getAuth } = require("firebase-admin/auth");
 
 const defaultAdminEmails = [
   "mizzlebankai@gmail.com"
@@ -21,14 +22,26 @@ function enforceRateLimit(key) {
 }
 
 function getAdminApp() {
-  if (admin.getApps().length) return admin.getApp();
+  if (getApps().length) return getApp();
 
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-  const credential = serviceAccountJson
-    ? admin.credential.cert(JSON.parse(serviceAccountJson))
-    : admin.credential.applicationDefault();
+  let credential = null;
+  if (serviceAccountJson) {
+    try {
+      credential = cert(JSON.parse(serviceAccountJson));
+    } catch (e) {
+      console.warn("Invalid FIREBASE_SERVICE_ACCOUNT_JSON:", e.message);
+    }
+  }
+  if (!credential) {
+    try {
+      credential = applicationDefault();
+    } catch (_) {
+      // Default credentials unavailable
+    }
+  }
 
-  return admin.initializeApp({ credential });
+  return initializeApp(credential ? { credential } : {});
 }
 
 function allowedAdminEmails() {
@@ -46,7 +59,8 @@ async function deleteAuthUser({ uid, idToken }) {
   }
 
   const app = getAdminApp();
-  const requester = await app.auth().verifyIdToken(idToken);
+  const auth = getAuth(app);
+  const requester = await auth.verifyIdToken(idToken);
   if (!allowedAdminEmails().includes(String(requester.email || "").toLowerCase())) {
     const error = new Error("Only an authorized administrator can delete Auth accounts.");
     error.statusCode = 403;
@@ -56,7 +70,7 @@ async function deleteAuthUser({ uid, idToken }) {
   enforceRateLimit(requester.uid);
 
   try {
-    await app.auth().deleteUser(uid);
+    await auth.deleteUser(uid);
     return { deleted: true };
   } catch (error) {
     if (error.code === "auth/user-not-found") return { deleted: false, alreadyMissing: true };
