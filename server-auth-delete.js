@@ -155,4 +155,38 @@ async function purgeStudentData({ student, idToken }) {
   return { deleted: true };
 }
 
-module.exports = { deleteAuthUser, getAdminApp, purgeStudentData };
+async function purgeTeacherData({ teacher, idToken }) {
+  if (!teacher?.id) {
+    const error = new Error("A staff record is required.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const { app, auth } = await verifyAdmin(idToken);
+  const db = getFirestore(app);
+  const [timetableSnapshot, classesSnapshot] = await Promise.all([
+    db.collection("olistar_timetable").where("teacherId", "==", teacher.id).get(),
+    db.collection("olistar_classes").where("teacherId", "==", teacher.id).get()
+  ]);
+
+  await Promise.all(timetableSnapshot.docs.map((item) => item.ref.delete()));
+  await Promise.all(classesSnapshot.docs.map((item) => item.ref.update({ teacherId: "" })));
+
+  const loginKeys = [teacher.institutionalEmail?.toLowerCase()].filter(Boolean);
+  await Promise.all(loginKeys.map((key) => db.collection("olistar_login_index").doc(key).delete()));
+  if (teacher.authUid) {
+    await db.collection("olistar_users").doc(teacher.authUid).delete();
+  }
+  await db.collection("olistar_teachers").doc(teacher.id).delete();
+
+  if (teacher.authUid) {
+    try {
+      await auth.deleteUser(teacher.authUid);
+    } catch (error) {
+      if (error.code !== "auth/user-not-found") throw error;
+    }
+  }
+  return { deleted: true };
+}
+
+module.exports = { deleteAuthUser, getAdminApp, purgeStudentData, purgeTeacherData };

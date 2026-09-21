@@ -1,6 +1,4 @@
-import { getAll, patchRow, removeRow } from "./store.js";
 import { auth } from "./auth.js";
-import { removeLoginIndexEntry } from "./provision-auth.js";
 
 export async function deleteStudentData(student) {
     if (!student?.id) throw new Error("The selected student record is unavailable. Refresh the page and try again.");
@@ -16,23 +14,16 @@ export async function deleteStudentData(student) {
 }
 
 export async function deleteTeacherData(member) {
+    if (!member?.id) throw new Error("The selected staff record is unavailable. Refresh the page and try again.");
     const token = await auth.currentUser?.getIdToken(true);
     if (!token) throw new Error("Your administrator session has expired. Sign in again before deleting data.");
-    if (member.authUid) {
-        const response = await fetch("api/delete-auth-user", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ uid: member.authUid })
-        });
-        const result = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(result.error || "Firebase Auth account could not be deleted.");
-    }
-    const [timetable, classes] = await Promise.all([getAll("timetable"), getAll("classes")]);
-    await Promise.all((Array.isArray(timetable) ? timetable : []).filter((row) => row.teacherId === member.id).map((row) => removeRow("timetable", row.id)));
-    await Promise.all((Array.isArray(classes) ? classes : []).filter((row) => row.teacherId === member.id).map((row) => patchRow("classes", row.id, { teacherId: "" })));
-    await removeRow("teachers", member.id);
-    if (member.authUid) await removeRow("users", member.authUid);
-    await removeLoginIndexEntry({ institutionalEmail: member.institutionalEmail });
+    const response = await fetch("api/delete-auth-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ teacher: member })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || "Firebase staff records could not be purged.");
 }
 
 export async function deleteAdminRecord({ button, collection, id, label, note = "", related = [], onDelete = null }) {
